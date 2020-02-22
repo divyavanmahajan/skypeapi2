@@ -1,11 +1,38 @@
+servicebasename: hcare4-template
 custom:
   # Our stage is based on what is passed in when running serverless
   # commands. Or fallsback to what we have set in the provider section.
-  stage: ${opt:stage, self:provider.stage}
+  defaultstage: dev
+  servicebasename: hcare4-template
+  domainsuffix: cloud.van-den-heuvel.com
   resourcesStages:
     prod: prod
     dev: dev
+  deletionPolicies:
+    prod: Retain
+    dev: Delete
+  rdsDeletionPolicies:
+    prod: Retain
+    dev: Snapshot
+
+  # Calculated fields
+  stage: ${opt:stage, self:custom.defaultstage}
   resourcesStage: ${self:custom.resourcesStages.${self:custom.stage}, self:custom.resourcesStages.dev}
+  resourcePrefix: ${self:custom.resourcesStage}-${self:custom.servicebasename}
+  # Deletion policy for resources (S3 and DynamoDb)
+  deletionPolicy: ${self:custom.deletionPolicies.${self:custom.stage}, self:custom.deletionPolicies.dev}
+  # Deletion policy for resources (RDS)
+  rdsDeletionPolicy: ${self:custom.rdsDeletionPolicies.${self:custom.stage}, self:custom.rdsDeletionPolicies.dev}
+  serviceTableName: ${self:custom.resourcePrefix}-db
+  rdsClusterName: ${self:custom.resourcePrefix}-cluster
+  domainname: ${self:custom.servicebasename}.${self:custom.domainsuffix}
+  # Configuration for serverless-domain-manager
+  customDomain:
+    domainName: ${self:custom.domainname}
+    basePath: ${self:custom.stage}
+    certificateName: "*.${self:custom.domainsuffix}"
+    stage: ${self:custom.stage}
+    createRoute53Record: true
 
 lambdaPolicyXRay:
   Effect: Allow

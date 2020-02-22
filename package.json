@@ -1,15 +1,21 @@
 {
-  "name": "serverless-stack-demo-ext-api",
+  "name": "hcare4_api_template",
   "version": "1.0.0",
-  "description": "[Serverless Stack](https://serverless-stack.com) is a free comprehensive guide to creating full-stack serverless applications. We create a [note taking app](https://demo2.serverless-stack.com) from scratch.",
+  "description": "Template for creating new backend APIs.",
   "main": "config.js",
   "dependencies": {
     "aws-xray-sdk": "^2.3.6"
   },
   "devDependencies": {
+    "apollo-server-lambda": "^2.10.1",
     "aws-sdk": "^2.541.0",
+    "express": "^4.17.1",
     "serverless-bundle": "^1.2.5",
-    "serverless-offline": "^5.12.0"
+    "serverless-domain-manager": "^3.3.1",
+    "serverless-http": "^2.3.1",
+    "serverless-latest-layer-version": "^2.1.0",
+    "serverless-offline": "^5.12.0",
+    "serverless-pseudo-parameters": "^2.5.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

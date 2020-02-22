@@ -1,0 +1,16 @@
+{
+  "name": "skype-api",
+  "version": "1.0.0",
+  "description": "API to store Skype VQSessionReports",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "body-parser": "^1.19.0",
+    "debug": "^4.1.1",
+    "hash.js": "^1.1.7",
+    "line-reader": "^0.4.0",
+    "uuid": "^3.4.0",
+    "xml2js": "^0.4.23"
+  }
+}

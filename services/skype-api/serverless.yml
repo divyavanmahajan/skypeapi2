@@ -1,0 +1,128 @@
+service: ${file(../../serverless.common.yml):servicebasename}-extapi
+
+custom: ${file(../../serverless.common.yml):custom}
+
+plugins:
+  # - serverless-bundle
+  - serverless-offline
+  - serverless-domain-manager
+  - serverless-latest-layer-version
+  - serverless-pseudo-parameters
+provider:
+  name: aws
+  runtime: nodejs12.x
+  timeout: 30
+  memorySize: 256
+  tracing:
+    apiGateway: true
+    lambda: true
+  # These environment variables are made available to our functions
+  # under process.env.
+  environment:
+    stage: ${self:custom.stage}
+    resourcePrefix: ${self:custom.resourcePrefix}
+    APP_LOG_BUCKET:
+      "Fn::ImportValue": ${self:custom.resourcePrefix}-ExtAttachmentsBucket
+    APP_DEBUG: processXML
+  layers:
+    # - "Fn::ImportValue": ${self:custom.resourcePrefix}-commonLibs
+    # Importing the Layer export - prevents the Layer stack from updating.
+    - arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:layer:${self:custom.resourcePrefix}-layer:latest
+
+  iamRoleStatements:
+    - ${file(../../serverless.common.yml):lambdaPolicyXRay}
+    - Effect: Allow
+      Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      # Restrict our IAM role permissions to
+      # the specific table for the stage
+      Resource:
+        - "Fn::ImportValue": ${self:custom.resourcePrefix}-ServiceDBTableArn
+    # Permit S3 access for lambda function.
+    - Effect: Allow
+      Action:
+        - "s3:ListBucket"
+      Resource:
+        - "Fn::ImportValue": ${self:custom.resourcePrefix}-ExtAttachmentsBucketArn
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+        - s3:PutObject
+        - s3:DeleteObject
+      Resource:
+        - Fn::Join:
+            - ""
+            - - "Fn::ImportValue": ${self:custom.resourcePrefix}-ExtAttachmentsBucketArn
+              - "/*"
+functions:
+  reprocess:
+    handler: index.reprocess
+    timeout: 300
+    memorySize: 1024
+
+  # Separate function - to permit S3 upload for triggering
+  s3:
+    handler: index.s3
+    events:
+      - s3:
+          bucket:
+            "Fn::ImportValue": ${self:custom.resourcePrefix}-ExtAttachmentsBucket
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: protected/
+            # - suffix: .UccApilog
+          existing: true
+  rest:
+    handler: index.rest
+    events:
+      - http: ANY /
+      - http: "ANY {proxy+}"
+  graphql:
+    handler: index.graphql
+    layers:
+      - "Fn::ImportValue": ${self:custom.resourcePrefix}-commonLibs
+    events:
+      - http:
+          path: graphql
+          method: post
+          # authorizer: aws_iam
+          cors:
+            origin: "*" # <-- Specify allowed origin
+            headers: # <-- Specify allowed headers
+              - Origin
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: true
+      - http:
+          path: graphql
+          method: get
+resources:
+  # API Gateway Errors
+  - ${file(resources/api-gateway-errors.yml)}
+  # Cognito Identity Pool Policy
+  - ${file(resources/cognito-policy.yml)}
+
+  - Outputs:
+      ApiGatewayRestApiId:
+        Value:
+          Ref: ApiGatewayRestApi
+        Export:
+          Name: ${self:custom.resourcePrefix}-ExtApiGatewayRestApiId
+
+      ApiGatewayRestApiRootResourceId:
+        Value:
+          Fn::GetAtt:
+            - ApiGatewayRestApi
+            - RootResourceId
+        Export:
+          Name: ${self:custom.resourcePrefix}-ExtApiGatewayRestApiRootResourceId
