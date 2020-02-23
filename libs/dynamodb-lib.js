@@ -1,12 +1,19 @@
-import AWS from "./aws-sdk";
-import config from "../config";
+const AWS = require("./aws-sdk");
+const { RESOURCEPREFIX } = require("../config");
 
-const dynamoDb = new AWS.DynamoDB.DocumentClient();
+const dynamoDb = new AWS.DynamoDB.DocumentClient({
+  convertEmptyValues: true
+});
 
-export function call(action, params) {
+function call(action, params) {
   // Parameterize table names with stage name
-  return dynamoDb[action]({
+  const adjustedParams = {
     ...params,
-    TableName: `${config.resourcesPrefix}-${params.TableName}`
-  }).promise();
+    TableName: `${RESOURCEPREFIX}-${params.TableName}`
+  };
+  console.log(
+    `Adjusted parameters\n${JSON.stringify(adjustedParams, null, 2)}`
+  );
+  return dynamoDb[action](adjustedParams).promise();
 }
+exports.call = call;

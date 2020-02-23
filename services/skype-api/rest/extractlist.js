@@ -138,5 +138,9 @@ const MEDIALINE_EXTRACT = [
   ]
 ];
 
-module.exports.HEADER_EXTRACT = HEADER_EXTRACT;
-module.exports.MEDIALINE_EXTRACT = MEDIALINE_EXTRACT;
+if (module.exports) {
+  module.exports.HEADER_EXTRACT = HEADER_EXTRACT;
+  module.exports.MEDIALINE_EXTRACT = MEDIALINE_EXTRACT;
+} else {
+  export { HEADER_EXTRACT, MEDIALINE_EXTRACT };
+}

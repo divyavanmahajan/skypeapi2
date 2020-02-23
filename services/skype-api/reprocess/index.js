@@ -1,10 +1,5 @@
-const AWSXRay = require("aws-xray-sdk"); // eslint-disable-line global-require
-const AWS = AWSXRay.captureAWS(require("aws-sdk")); // eslint-disable-line global-require
-
-const DYNAMO_TABLE = process.env.DYNAMO_TABLE;
-const docClient = new AWS.DynamoDB.DocumentClient({
-  convertEmptyValues: true
-});
+const { DYNAMO_TABLE } = require("../../../config");
+const dynamoDbLib = require("../../../libs/dynamodb-lib");
 
 const { writeToDynamoDB } = require("../rest/writeToDynamoDB");
 
@@ -46,7 +41,7 @@ module.exports.handler = async (event, context) => {
         // Step 1: Scan / Read all records in DynamoDB in batches of 10
 
         console.log(`Scanning with ${JSON.stringify(readparams, null, 2)}`);
-        readresult = await docClient.scan(readparams).promise();
+        readresult = await dynamoDbLib.call("scan", readparams);
         console.log(`Result: ${JSON.stringify(readresult, null, 2)}`);
         // Step 2: process the new JSON record
         const reports = [];

@@ -19,15 +19,15 @@ provider:
 
   apiGateway:
     restApiId:
-      'Fn::ImportValue': ${self:custom.stage}-ExtApiGatewayRestApiId
+      "Fn::ImportValue": ${self:custom.stage}-ExtApiGatewayRestApiId
     restApiRootResourceId:
-      'Fn::ImportValue': ${self:custom.stage}-ExtApiGatewayRestApiRootResourceId
+      "Fn::ImportValue": ${self:custom.stage}-ExtApiGatewayRestApiRootResourceId
 
   # These environment variables are made available to our functions
   # under process.env.
   environment:
     stage: ${self:custom.stage}
-    resourcesStage: ${self:custom.resourcesStage}
+    resourcePrefix: ${self:custom.resourcePrefix}
     notePurchasedTopicArn:
       Ref: NotePurchasedTopic
 
@@ -38,13 +38,12 @@ provider:
         - ssm:GetParameter
       Resource:
         Fn::Join:
-          - ''
-          -
-            - 'arn:aws:ssm:'
+          - ""
+          - - "arn:aws:ssm:"
             - Ref: AWS::Region
-            - ':'
+            - ":"
             - Ref: AWS::AccountId
-            - ':parameter/stripeSecretKey/*'
+            - ":parameter/stripeSecretKey/*"
 
     - Effect: Allow
       Action:
@@ -78,4 +77,3 @@ resources:
         Ref: NotePurchasedTopic
       Export:
         Name: ExtNotePurchasedTopicArn-${self:custom.stage}
-

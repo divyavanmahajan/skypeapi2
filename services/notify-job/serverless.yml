@@ -15,7 +15,7 @@ provider:
   region: us-east-1
   environment:
     stage: ${self:custom.stage}
-    resourcesStage: ${self:custom.resourcesStage}
+    resourcePrefix: ${self:custom.resourcePrefix}
   tracing:
     lambda: true
 
@@ -24,12 +24,11 @@ provider:
     - Effect: Allow
       Action:
         - sns:Publish
-      Resource: '*'
+      Resource: "*"
 
 functions:
   notify:
     handler: notify.main
     events:
       - sns:
-        'Fn::ImportValue': ExtNotePurchasedTopicArn-${self:custom.stage}
-
+        "Fn::ImportValue": ExtNotePurchasedTopicArn-${self:custom.stage}

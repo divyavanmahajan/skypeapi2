@@ -3,7 +3,7 @@ service: ${file(../../serverless.common.yml):servicebasename}-extapi
 custom: ${file(../../serverless.common.yml):custom}
 
 plugins:
-  # - serverless-bundle
+  - serverless-bundle
   - serverless-offline
   - serverless-domain-manager
   - serverless-latest-layer-version
@@ -19,11 +19,12 @@ provider:
   # These environment variables are made available to our functions
   # under process.env.
   environment:
-    stage: ${self:custom.stage}
-    resourcePrefix: ${self:custom.resourcePrefix}
+    APP_STAGE: ${self:custom.stage}
+    APP_RESOURCEPREFIX: ${self:custom.resourcePrefix}
     APP_LOG_BUCKET:
       "Fn::ImportValue": ${self:custom.resourcePrefix}-ExtAttachmentsBucket
     APP_DEBUG: processXML
+    APP_DYNAMO_TABLE: "db"
   layers:
     # - "Fn::ImportValue": ${self:custom.resourcePrefix}-commonLibs
     # Importing the Layer export - prevents the Layer stack from updating.
@@ -60,6 +61,17 @@ provider:
             - ""
             - - "Fn::ImportValue": ${self:custom.resourcePrefix}-ExtAttachmentsBucketArn
               - "/*"
+
+# Create an optimized package for our functions
+package:
+  # individually: true
+  exclude:
+    - testdata/**
+    - output/*
+    - layer/*
+    - node_modules/**
+    - yarn*.log
+
 functions:
   reprocess:
     handler: index.reprocess
