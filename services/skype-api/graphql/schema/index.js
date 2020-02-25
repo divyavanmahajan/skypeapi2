@@ -1,4 +1,4 @@
-const { gql } = require('apollo-server-lambda');
+import { gql } from 'apollo-server-lambda';
 const schema = gql`
   type Query {
     getValidDates(user: String, after: String): ValidDates
@@ -15,9 +15,14 @@ const schema = gql`
       SK: [String]
     ): [String]
   }
+  type ValidDateItem {
+    PK: String!
+    SK: String!
+    reportcount: Int
+  }
 
   type ValidDates {
-    Items: [Token]
+    Items: [ValidDateItem]
     Count: Int
     ScannedCount: Int
     ConsumedCapacity: ConsumedCapacity
@@ -93,4 +98,4 @@ const schema = gql`
   }
 `;
 
-module.exports.schema = schema;
+export { schema };

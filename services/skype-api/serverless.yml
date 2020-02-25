@@ -22,9 +22,11 @@ provider:
     APP_STAGE: ${self:custom.stage}
     APP_RESOURCEPREFIX: ${self:custom.resourcePrefix}
     APP_LOG_BUCKET:
-      "Fn::ImportValue": ${self:custom.resourcePrefix}-ExtAttachmentsBucket
-    APP_DEBUG: processXML
-    APP_DYNAMO_TABLE: "db"
+      'Fn::ImportValue': ${self:custom.resourcePrefix}-ExtAttachmentsBucket
+    LOG: INFO
+    APP_DYNAMO_TABLE: 'db'
+    APP_GRAPHQL_PLAYGROUND: true
+    APP_AWS_LOGGING: false
   layers:
     # - "Fn::ImportValue": ${self:custom.resourcePrefix}-commonLibs
     # Importing the Layer export - prevents the Layer stack from updating.
@@ -41,16 +43,20 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
+        - dynamodb:BatchWriteItem
+        - dynamodb:BatchGetItem
       # Restrict our IAM role permissions to
       # the specific table for the stage
       Resource:
-        - "Fn::ImportValue": ${self:custom.resourcePrefix}-ServiceDBTableArn
+        - 'Fn::ImportValue': ${self:custom.resourcePrefix}-ServiceDBTableArn
+        - 'Fn::ImportValue': ${self:custom.resourcePrefix}-CounterDBTableArn
+
     # Permit S3 access for lambda function.
     - Effect: Allow
       Action:
-        - "s3:ListBucket"
+        - 's3:ListBucket'
       Resource:
-        - "Fn::ImportValue": ${self:custom.resourcePrefix}-ExtAttachmentsBucketArn
+        - 'Fn::ImportValue': ${self:custom.resourcePrefix}-ExtAttachmentsBucketArn
     - Effect: Allow
       Action:
         - s3:GetObject
@@ -58,9 +64,9 @@ provider:
         - s3:DeleteObject
       Resource:
         - Fn::Join:
-            - ""
-            - - "Fn::ImportValue": ${self:custom.resourcePrefix}-ExtAttachmentsBucketArn
-              - "/*"
+            - ''
+            - - 'Fn::ImportValue': ${self:custom.resourcePrefix}-ExtAttachmentsBucketArn
+              - '/*'
 
 # Create an optimized package for our functions
 package:
@@ -81,10 +87,11 @@ functions:
   # Separate function - to permit S3 upload for triggering
   s3:
     handler: index.s3
+    memorySize: 512
     events:
       - s3:
           bucket:
-            "Fn::ImportValue": ${self:custom.resourcePrefix}-ExtAttachmentsBucket
+            'Fn::ImportValue': ${self:custom.resourcePrefix}-ExtAttachmentsBucket
           event: s3:ObjectCreated:*
           rules:
             - prefix: protected/
@@ -94,18 +101,20 @@ functions:
     handler: index.rest
     events:
       - http: ANY /
-      - http: "ANY {proxy+}"
+      - http: 'ANY {proxy+}'
   graphql:
     handler: index.graphql
     layers:
-      - "Fn::ImportValue": ${self:custom.resourcePrefix}-commonLibs
+      # - "Fn::ImportValue": ${self:custom.resourcePrefix}-commonLibs
+      - arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:layer:${self:custom.resourcePrefix}-layer:latest
+
     events:
       - http:
           path: graphql
           method: post
           # authorizer: aws_iam
           cors:
-            origin: "*" # <-- Specify allowed origin
+            origin: '*' # <-- Specify allowed origin
             headers: # <-- Specify allowed headers
               - Origin
               - Content-Type

@@ -17,5 +17,4 @@ function buildResponse(statusCode, body) {
   };
 }
 
-exports.success = success;
-exports.failure = failure;
+export { success, failure };

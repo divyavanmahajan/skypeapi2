@@ -1,6 +1,7 @@
-const dynamoDbLib = require("../../../../libs/dynamodb-lib");
-const config = require("../../../../config");
-const { DYNAMO_TABLE } = config;
+import * as dynamoDbLib from '../../../../libs/dynamodb-lib';
+import config from '../../../../config';
+import { loggerAPI } from '../../../../libs/logging';
+const { COUNTER_TABLE } = config;
 
 /**
  * getValidDates - resolver to get all calendar days.
@@ -9,11 +10,11 @@ const { DYNAMO_TABLE } = config;
 const getValidDates = args => {
   return queryDatabase(args).then(result => {
     const response = { ...result };
-    console.log(result);
+    loggerAPI.debug(result);
     if (result.LastEvaluatedKey) {
       response.nextToken = {
         PK: result.LastEvaluatedKey.PK,
-        SK: result.LastEvaluatedKey.SK
+        SK: result.LastEvaluatedKey.SK,
       };
     }
     return response;
@@ -22,23 +23,23 @@ const getValidDates = args => {
 
 async function queryDatabase(args) {
   let searchvalues = {
-    ":v1": `CALENDAR`
+    ':v1': 'CALENDAR',
   };
   if (args.user && args.user.length > 3) {
     searchvalues = {
-      ":v1": `CAL#sip:${args.user}`
+      ':v1': `CAL#sip:${args.user}`,
     };
   }
   const params = {
-    TableName: DYNAMO_TABLE,
-    KeyConditionExpression: "PK = :v1",
+    TableName: COUNTER_TABLE,
+    KeyConditionExpression: 'PK = :v1',
     ExpressionAttributeValues: searchvalues,
     ScanIndexForward: false,
-    ReturnConsumedCapacity: "INDEXES"
+    ReturnConsumedCapacity: 'INDEXES',
   };
-  console.info("DynamoDB params", JSON.stringify(params, null, 2));
-  const result = await dynamoDbLib.call("query", params);
+  loggerAPI.debug('DynamoDB params', JSON.stringify(params, null, 2));
+  const result = await dynamoDbLib.call('query', params);
   return result;
 }
 
-exports.getValidDates = getValidDates;
+export { getValidDates };

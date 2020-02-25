@@ -24,19 +24,36 @@ custom:
   # Deletion policy for resources (RDS)
   rdsDeletionPolicy: ${self:custom.rdsDeletionPolicies.${self:custom.stage}, self:custom.rdsDeletionPolicies.dev}
   serviceTableName: ${self:custom.resourcePrefix}-db
+  counterTableName: ${self:custom.resourcePrefix}-counter
   rdsClusterName: ${self:custom.resourcePrefix}-cluster
   domainname: ${self:custom.servicebasename}.${self:custom.domainsuffix}
   # Configuration for serverless-domain-manager
   customDomain:
     domainName: ${self:custom.domainname}
     basePath: ${self:custom.stage}
-    certificateName: "*.${self:custom.domainsuffix}"
+    certificateName: '*.${self:custom.domainsuffix}'
     stage: ${self:custom.stage}
     createRoute53Record: true
+  # Configuration for serverless-bundle
+  bundle:
+    sourcemaps: true # Enable source maps
+    caching: true # Enable Webpack caching
+    stats: false # Don't print out any Webpack output
+    linting: true # Enable linting as a part of the build process
+    ignorePackages: # Ignore building any of the following packages
+      - hiredis # For ex, hiredis needs to be ignored if using redis
+      - pg-native
+    copyFiles: # Copy any additional files to the generated package
+      - from: 'public/*' # Where the files are currently
+        to: './' # Where in the package should they go
+    packager: yarn # Specify a packager, 'npm' or 'yarn'. Defaults to 'npm'.
+    # packagerOptions: # Run a custom script in the package process
+    #   scripts: # https://github.com/serverless-heaven/serverless-webpack#custom-scripts
+    #     - echo hello > test
 
 lambdaPolicyXRay:
   Effect: Allow
   Action:
     - xray:PutTraceSegments
     - xray:PutTelemetryRecords
-  Resource: "*"
+  Resource: '*'

@@ -1,98 +1,76 @@
-const { storeLogToDB } = require("./storeLogToDB");
+import uuidv4 from 'uuid/v4';
+import { loggerAPI } from '../../../libs/logging';
+import { initPermissions } from '../../../libs/permissions';
+import { moveS3File, createReadStream } from '../libs/s3helpers';
+import { extractXML } from '../libs/extractXML';
+import { storeLogToDB } from '../libs/storeLogToDB';
+import config from '../../../config';
 
-const { moveS3File, saveXMLtoS3 } = require("../utils/s3utils");
-const { S3 } = require("../utils/aws");
-const { extractXMLfromLog } = require("../rest/extractXMLfromLog");
-
-const uuidv4 = require("uuid/v4");
-
-// const logFileKey = (uuid, isError) => {
-//   const folder = isError ? 'error' : 'raw';
-//   return `logs/${folder}/${uuid}.log`;
-// };
-
-const createReadStream = (s3Bucket, s3ObjectKey) => {
-  return new Promise((resolve, reject) => {
-    console.info(`== Processing ${s3Bucket}/${s3ObjectKey}`);
-    // Retrieve the object
-    const params = {
-      Bucket: s3Bucket,
-      Key: s3ObjectKey
-    };
-    try {
-      resolve(S3.getObject(params).createReadStream());
-    } catch (e) {
-      reject(e);
-    }
-  });
-};
-
-module.exports.handler = async (event, context) => {
+export const handler = async (event, context) => {
   const results = [];
   const promises = [];
   const uuid = uuidv4();
+  initPermissions(event, context);
+  // const ability = getAbility(); not used here.
+  loggerAPI.debug(`Environment\n${JSON.stringify(process.env, null, 2)}`);
+  loggerAPI.debug(`Config\n${JSON.stringify(config, null, 2)}`);
+  loggerAPI.debug(`Event\n${JSON.stringify(event, null, 2)}`);
+  loggerAPI.debug(`Context\n${JSON.stringify(context, null, 2)}`);
 
   try {
-    console.info(`----file: ${uuid}.log ----`);
-    console.info("---------event-----------");
-    console.info(JSON.stringify(event));
-    console.info("---------context----------");
-    console.info(JSON.stringify(context));
+    loggerAPI.info(`----File: ${uuid}.log ----`);
+    loggerAPI.debug(`Event\n${JSON.stringify(event)}`);
+    loggerAPI.debug(`Context\n${JSON.stringify(context)}`);
     for (let index = 0; index < event.Records.length; index++) {
       const record = event.Records[index];
       const s3Bucket = decodeURIComponent(record.s3.bucket.name);
       const s3ObjectKey = decodeURIComponent(record.s3.object.key);
       const extractPromise = createReadStream(s3Bucket, s3ObjectKey)
         .then(readstream => {
-          console.info("Await1");
-          return extractXMLfromLog(readstream, uuid);
+          loggerAPI.info(`-- Extracting XML from ${s3Bucket}/${s3ObjectKey}.`);
+          return extractXML(readstream, uuid);
         })
         .then(async xml => {
-          console.info("Await2a");
-          // Move to processed folder.
-          // console.info(xml);
           try {
-            await saveXMLtoS3(uuid, xml);
+            loggerAPI.info(`-- Moving file ${s3Bucket}/${s3ObjectKey}.`);
             await moveS3File(s3Bucket, s3ObjectKey, uuid);
+            loggerAPI.info(
+              `File moved: ${JSON.stringify(
+                { s3Bucket, s3ObjectKey, uuid },
+                null,
+                2,
+              )}`,
+            );
           } catch (fileerr) {
-            console.error("Problem saving files: ", fileerr);
+            loggerAPI.error('Error moving file:', fileerr);
           }
-          console.info(
-            `-- Parsed ${s3Bucket}/${s3ObjectKey}\n -- Pushing to store now`
-          );
+          loggerAPI.info('Store in database');
           return storeLogToDB(xml, uuid);
         })
         .then(result => {
-          console.info("Await2b");
           result.key = `${s3Bucket}/${s3ObjectKey}`;
-          console.info(`-- Saved ${s3Bucket}/${s3ObjectKey} to S3.`);
           results.push(result);
         })
         .catch(err => {
-          console.error(
-            `-- Error processing ${s3Bucket}/${s3ObjectKey}.`,
+          loggerAPI.error(
+            `-- Error processing ${s3Bucket}/${s3ObjectKey}.\n`,
             err,
-            err.stack
+            err.stack,
           );
         })
         .finally(() => {
-          console.info(`== Completed ${s3Bucket}/${s3ObjectKey}\n `);
+          loggerAPI.info(`Completed ${s3Bucket}/${s3ObjectKey}\n `);
         });
       promises.push(extractPromise);
     } // for
     await Promise.all(promises).then(() => {
-      console.info("Await4");
-
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ result: results })
-      };
+      loggerAPI.info(`Final result\n\n${JSON.stringify(results, null, 2)}`);
     });
   } catch (error) {
-    console.error(error, error.stack);
+    loggerAPI.error('Error parsing file:', error);
     return {
       statusCode: 400,
-      body: JSON.stringify({ error })
+      body: JSON.stringify({ error }),
     };
   }
 };
