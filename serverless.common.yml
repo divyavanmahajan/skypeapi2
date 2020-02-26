@@ -5,6 +5,7 @@ custom:
   defaultstage: dev
   servicebasename: skypelogs
   domainsuffix: cloud.van-den-heuvel.com
+  # Region for Philips - eu-central-1
   resourcesStages:
     philips: philips
     prod: prod
