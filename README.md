@@ -1,7 +1,9 @@
-# Serverless Stack Extended Backend API
+# Skype Log service
 
 AWS_PROFILE=skypelogs sls create_domain
 AWS_PROFILE=skypelogs aws acm list-certificates
+
+Philips is deployed in eu-central-1
 
 [Serverless Stack](https://serverless-stack.com) is a free comprehensive guide to creating full-stack serverless applications. We create a [note taking app](https://demo2.serverless-stack.com) from scratch.
 
@@ -18,7 +20,7 @@ $ npm install serverless -g
 Clone this repo.
 
 ```bash
-$ git clone https://github.com/AnomalyInnovations/serverless-stack-demo-ext-api
+$ git clone https://github.com/divyavanmahajan/skypeapi2
 ```
 
 Go to one of the services in the `services/` dir.
@@ -29,7 +31,7 @@ And run this to deploy to your AWS account.
 $ serverless deploy
 ```
 
-The services are dependent on the resources that are created [in this accompanying repo](https://github.com/AnomalyInnovations/serverless-stack-demo-ext-resources).
+The services are dependent on the resources that are created [in this accompanying repo](https://github.com/divyavanmahajan/skypeapi2-resources).
 
 #### Maintainers
 
